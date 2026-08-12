@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Twibbon Kemerdekaan 17an</title>
+  <style>
+    /* Reset & Base Styles */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      background-color: #f1f5f9;
+      color: #1e293b;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    header {
+      background: linear-gradient(135deg, #b7094c, #dc2626, #991b1b);
+      color: #ffffff;
+      text-align: center;
+      padding: 24px 16px;
+      border-bottom: 4px solid #fbbf24;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    header h1 {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    header h1 span {
+      color: #fef08a;
+    }
+    header p {
+      font-size: 13px;
+      color: #fecdd3;
+      margin-top: 4px;
+    }
+    main {
+      flex: 1;
+      max-width: 1000px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 20px 16px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+    @media (min-width: 768px) {
+      main {
+        grid-template-columns: 420px 1fr;
+        align-items: start;
+      }
+    }
+    .canvas-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 380px;
+      aspect-ratio: 9 / 16;
+      background: #ffffff;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.15);
+      border: 4px solid #f59e0b;
+      touch-action: none;
+      cursor: grab;
+    }
+    .canvas-wrapper:active {
+      cursor: grabbing;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .controls-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+      border: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .section-title {
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #64748b;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 14px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #dc2626, #b7094c);
+      color: #ffffff;
+      box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.3);
+    }
+    .btn-primary:hover {
+      opacity: 0.95;
+      transform: translateY(-1px);
+    }
+    .btn-download {
+      background: linear-gradient(135deg, #dc2626, #f59e0b);
+      color: #ffffff;
+      font-size: 16px;
+      padding: 14px 20px;
+      box-shadow: 0 10px 15px -3px rgba(220, 38, 38, 0.3);
+    }
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+    }
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
+    .range-group {
+      background: #f8fafc;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+    }
+    .range-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      accent-color: #dc2626;
+      cursor: pointer;
+    }
+    .badge {
+      background: #fef2f2;
+      color: #991b1b;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Twibbon Kemerdekaan <span>17an</span></h1>
+    <p>Aplikasi Twibbon Generator Portrait 1080x1920 (9:16)</p>
+  </header>
+
+  <main>
+    <div class="canvas-container">
+      <div class="canvas-wrapper" id="canvasWrapper">
+        <canvas id="twibbonCanvas" width="1080" height="1920"></canvas>
+      </div>
+      <p style="font-size: 12px; color: #64748b; margin-top: 8px; text-align: center;">
+        👉 Drag / Geser foto dengan mouse atau jari tangan untuk mempaskan wajah.
+      </p>
+    </div>
+
+    <div class="controls-card">
+      <div>
+        <div class="section-title">1. Unggah Foto</div>
+        <input type="file" id="uploadInput" accept="image/*" class="hidden">
+        <button class="btn btn-primary" style="width:100%;" onclick="document.getElementById('uploadInput').click()">
+          📷 Upload Foto Anda
+        </button>
+      </div>
+
+      <div class="range-group">
+        <div class="range-header">
+          <span>2. Zoom Foto</span>
+          <span class="badge" id="zoomValue">100%</span>
+        </div>
+        <input type="range" id="zoomRange" min="0.1" max="3" step="0.01" value="1">
+      </div>
+
+      <div>
+        <div class="section-title">3. Putar & Reset</div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary" style="flex:1;" id="rotateBtn">🔄 Putar</button>
+          <button class="btn btn-secondary" style="flex:1;" id="resetBtn">↩️ Reset</button>
+        </div>
+      </div>
+
+      <button class="btn btn-download" id="downloadBtn">
+        📥 Unduh Twibbon (1080x1920 PNG)
+      </button>
+    </div>
+  </main>
+
+  <script>
+    const canvas = document.getElementById('twibbonCanvas');
+    const ctx = canvas.getContext('2d');
+    const uploadInput = document.getElementById('uploadInput');
+    const zoomRange = document.getElementById('zoomRange');
+    const zoomValue = document.getElementById('zoomValue');
+    const rotateBtn = document.getElementById('rotateBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const wrapper = document.getElementById('canvasWrapper');
+
+    let userPhoto = null;
+    let photoX = 0;
+    let photoY = 0;
+    let photoScale = 1;
+    let photoRotation = 0;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+
+    // Load Frame Overlay
+    const frameImg = new Image();
+    frameImg.src = '17an Jindi Frame.png';
+    frameImg.onload = render;
+
+    function render() {
+      ctx.clearRect(0, 0, 1080, 1920);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 1080, 1920);
+
+      // 1. Draw User Photo (Bottom Layer)
+      if (userPhoto) {
+        ctx.save();
+        ctx.translate(1080 / 2 + photoX, 1920 / 2 + photoY);
+        ctx.rotate((photoRotation * Math.PI) / 180);
+        
+        const w = userPhoto.width * photoScale;
+        const h = userPhoto.height * photoScale;
+        ctx.drawImage(userPhoto, -w / 2, -h / 2, w, h);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = '#64748b';
+        ctx.font = 'bold 36px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Klik "Upload Foto Anda"', 540, 960);
+      }
+
+      // 2. Draw Frame Overlay (Top Layer)
+      if (frameImg.complete) {
+        ctx.drawImage(frameImg, 0, 0, 1080, 1920);
+      }
+    }
+
+    uploadInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const img = new Image();
+        img.onload = () => {
+          userPhoto = img;
+          photoX = 0;
+          photoY = 0;
+          photoRotation = 0;
+          photoScale = Math.max(1080 / img.width, 1920 / img.height);
+          zoomRange.value = photoScale;
+          zoomValue.textContent = Math.round(photoScale * 100) + '%';
+          render();
+        };
+        img.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    zoomRange.addEventListener('input', (e) => {
+      photoScale = parseFloat(e.target.value);
+      zoomValue.textContent = Math.round(photoScale * 100) + '%';
+      render();
+    });
+
+    rotateBtn.addEventListener('click', () => {
+      photoRotation = (photoRotation + 90) % 360;
+      render();
+    });
+
+    resetBtn.addEventListener('click', () => {
+      photoX = 0;
+      photoY = 0;
+      render();
+    });
+
+    // Touch & Drag Handling
+    function onStart(x, y) {
+      if (!userPhoto) return;
+      isDragging = true;
+      startX = x;
+      startY = y;
+    }
+
+    function onMove(x, y) {
+      if (!isDragging) return;
+      const rect = canvas.getBoundingClientRect();
+      const scaleFactor = 1080 / rect.width;
+
+      photoX += (x - startX) * scaleFactor;
+      photoY += (y - startY) * scaleFactor;
+      startX = x;
+      startY = y;
+      render();
+    }
+
+    function onEnd() {
+      isDragging = false;
+    }
+
+    wrapper.addEventListener('mousedown', (e) => onStart(e.clientX, e.clientY));
+    window.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY));
+    window.addEventListener('mouseup', onEnd);
+
+    wrapper.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) onStart(e.touches[0].clientX, e.touches[0].clientY);
+    });
+    window.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 1) onMove(e.touches[0].clientX, e.touches[0].clientY);
+    });
+    window.addEventListener('touchend', onEnd);
+
+    downloadBtn.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = 'Twibbon-Jindi-17an.png';
+      link.href = canvas.toDataURL('image/png', 1.0);
+      link.click();
+    });
+
+    render();
+  </script>
+</body>
+</html>
