@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Twibbon Kemerdekaan 17an</title>
+  <title>Twibbon Kemerdekaan 17an Jindi</title>
   <style>
     /* Reset & Base Styles */
     * {
@@ -18,17 +18,18 @@
       display: flex;
       flex-direction: column;
       min-height: 100vh;
+      padding-bottom: 40px;
     }
     header {
       background: linear-gradient(135deg, #b7094c, #dc2626, #991b1b);
       color: #ffffff;
       text-align: center;
-      padding: 24px 16px;
+      padding: 20px 16px;
       border-bottom: 4px solid #fbbf24;
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
     header h1 {
-      font-size: 26px;
+      font-size: 24px;
       font-weight: 900;
       letter-spacing: 1px;
       text-transform: uppercase;
@@ -46,14 +47,14 @@
       max-width: 1000px;
       width: 100%;
       margin: 0 auto;
-      padding: 20px 16px;
+      padding: 16px;
       display: grid;
       grid-template-columns: 1fr;
-      gap: 24px;
+      gap: 20px;
     }
     @media (min-width: 768px) {
       main {
-        grid-template-columns: 420px 1fr;
+        grid-template-columns: 380px 1fr;
         align-items: start;
       }
     }
@@ -65,15 +66,20 @@
     .canvas-wrapper {
       position: relative;
       width: 100%;
-      max-width: 380px;
+      max-width: 340px;
       aspect-ratio: 9 / 16;
       background: #ffffff;
       border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.15);
+      box-shadow: 0 15px 25px -5px rgba(0,0,0,0.15);
       border: 4px solid #f59e0b;
-      touch-action: none;
+      touch-action: pan-y; /* Default ijinkan scroll vertical */
       cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .canvas-wrapper.active-photo {
+      touch-action: none; /* Kunci scroll halaman saat foto di-drag/zoom */
     }
     .canvas-wrapper:active {
       cursor: grabbing;
@@ -124,11 +130,11 @@
       transform: translateY(-1px);
     }
     .btn-download {
-      background: linear-gradient(135deg, #dc2626, #f59e0b);
+      background: linear-gradient(135deg, #16a34a, #15803d);
       color: #ffffff;
       font-size: 16px;
       padding: 14px 20px;
-      box-shadow: 0 10px 15px -3px rgba(220, 38, 38, 0.3);
+      box-shadow: 0 10px 15px -3px rgba(22, 163, 74, 0.3);
     }
     .btn-secondary {
       background: #f1f5f9;
@@ -168,13 +174,20 @@
     .hidden {
       display: none;
     }
+    .hint-text {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 10px;
+      text-align: center;
+      line-height: 1.4;
+    }
   </style>
 </head>
 <body>
 
   <header>
     <h1>Twibbon Kemerdekaan <span>17an</span></h1>
-    <p>happy independence day</p>
+    <p>Dirgahayu Indonesia !! Merdekaaa!! </p>
   </header>
 
   <main>
@@ -182,8 +195,9 @@
       <div class="canvas-wrapper" id="canvasWrapper">
         <canvas id="twibbonCanvas" width="1080" height="1920"></canvas>
       </div>
-      <p style="font-size: 12px; color: #64748b; margin-top: 8px; text-align: center;">
-        👉 Drag / Geser foto dengan mouse atau jari tangan untuk mempaskan wajah.
+      <p class="hint-text">
+        💡 <b>Tips HP:</b> Gunakan <b>1 jari</b> untuk geser foto, <b>2 jari</b> untuk Zoom.<br>
+        <i>(Untuk scroll halaman down/up, sentuh latar abu-abu di luar frame)</i>
       </p>
     </div>
 
@@ -192,28 +206,28 @@
         <div class="section-title">1. Unggah Foto</div>
         <input type="file" id="uploadInput" accept="image/*" class="hidden">
         <button class="btn btn-primary" style="width:100%;" onclick="document.getElementById('uploadInput').click()">
-          📷 Upload Foto Anda
+          📁 Upload Foto Anda
         </button>
       </div>
 
       <div class="range-group">
         <div class="range-header">
-          <span>2. Zoom Foto</span>
+          <span>2. Zoom Foto (Slider / Pinch)</span>
           <span class="badge" id="zoomValue">100%</span>
         </div>
-        <input type="range" id="zoomRange" min="0.1" max="3" step="0.01" value="1">
+        <input type="range" id="zoomRange" min="0.05" max="5" step="0.01" value="1">
       </div>
 
       <div>
         <div class="section-title">3. Putar & Reset</div>
         <div style="display: flex; gap: 8px;">
-          <button class="btn btn-secondary" style="flex:1;" id="rotateBtn">🔄 Putar</button>
+          <button class="btn btn-secondary" style="flex:1;" id="rotateBtn">🔄 Putar 90°</button>
           <button class="btn btn-secondary" style="flex:1;" id="resetBtn">↩️ Reset</button>
         </div>
       </div>
 
       <button class="btn btn-download" id="downloadBtn">
-        📥 Unduh Twibbon (1080x1920 PNG)
+        📥 Unduh Twibbon (PNG 1080x1920)
       </button>
     </div>
   </main>
@@ -237,6 +251,10 @@
     let isDragging = false;
     let startX = 0;
     let startY = 0;
+
+    // Multi-touch pinch zoom variables
+    let initialPinchDistance = null;
+    let initialScale = 1;
 
     // Load Frame Overlay
     const frameImg = new Image();
@@ -283,9 +301,11 @@
           photoX = 0;
           photoY = 0;
           photoRotation = 0;
+          // Auto scale agar foto memenuhi minimal seluruh kanvas
           photoScale = Math.max(1080 / img.width, 1920 / img.height);
           zoomRange.value = photoScale;
           zoomValue.textContent = Math.round(photoScale * 100) + '%';
+          wrapper.classList.add('active-photo');
           render();
         };
         img.src = evt.target.result;
@@ -305,48 +325,132 @@
     });
 
     resetBtn.addEventListener('click', () => {
+      if (!userPhoto) return;
       photoX = 0;
       photoY = 0;
+      photoRotation = 0;
+      photoScale = Math.max(1080 / userPhoto.width, 1920 / userPhoto.height);
+      zoomRange.value = photoScale;
+      zoomValue.textContent = Math.round(photoScale * 100) + '%';
       render();
     });
 
-    // Touch & Drag Handling
-    function onStart(x, y) {
-      if (!userPhoto) return;
-      isDragging = true;
-      startX = x;
-      startY = y;
+    // Helper: Hitung Jarak 2 Jari (Pinch)
+    function getDistance(touches) {
+      return Math.hypot(
+        touches[0].clientX - touches[1].clientX,
+        touches[0].clientY - touches[1].clientY
+      );
     }
 
-    function onMove(x, y) {
-      if (!isDragging) return;
+    // --- MOUSE EVENTS (DESKTOP) ---
+    wrapper.addEventListener('mousedown', (e) => {
+      if (!userPhoto) return;
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging || !userPhoto) return;
       const rect = canvas.getBoundingClientRect();
       const scaleFactor = 1080 / rect.width;
 
-      photoX += (x - startX) * scaleFactor;
-      photoY += (y - startY) * scaleFactor;
-      startX = x;
-      startY = y;
+      photoX += (e.clientX - startX) * scaleFactor;
+      photoY += (e.clientY - startY) * scaleFactor;
+      startX = e.clientX;
+      startY = e.clientY;
       render();
-    }
+    });
 
-    function onEnd() {
+    window.addEventListener('mouseup', () => {
       isDragging = false;
-    }
+    });
 
-    wrapper.addEventListener('mousedown', (e) => onStart(e.clientX, e.clientY));
-    window.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY));
-    window.addEventListener('mouseup', onEnd);
+    // Mouse Wheel Zoom
+    wrapper.addEventListener('wheel', (e) => {
+      if (!userPhoto) return;
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.05 : 0.05;
+      let newScale = photoScale + delta;
+      newScale = Math.min(Math.max(newScale, 0.05), 5);
+      photoScale = newScale;
+      zoomRange.value = photoScale;
+      zoomValue.textContent = Math.round(photoScale * 100) + '%';
+      render();
+    }, { passive: false });
 
+
+    // --- TOUCH EVENTS (MOBILE & TABLET) ---
     wrapper.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 1) onStart(e.touches[0].clientX, e.touches[0].clientY);
-    });
-    window.addEventListener('touchmove', (e) => {
-      if (e.touches.length === 1) onMove(e.touches[0].clientX, e.touches[0].clientY);
-    });
-    window.addEventListener('touchend', onEnd);
+      if (!userPhoto) return;
 
+      if (e.touches.length === 1) {
+        // 1 Jari: Mulai Drag
+        isDragging = true;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+      } else if (e.touches.length === 2) {
+        // 2 Jari: Mulai Pinch Zoom
+        isDragging = false;
+        initialPinchDistance = getDistance(e.touches);
+        initialScale = photoScale;
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (e) => {
+      if (!userPhoto) return;
+
+      // Geser Foto (1 Jari)
+      if (e.touches.length === 1 && isDragging) {
+        if (wrapper.contains(e.target)) {
+          if (e.cancelable) e.preventDefault(); // Cegah scroll saat ngedrag foto
+        }
+        const rect = canvas.getBoundingClientRect();
+        const scaleFactor = 1080 / rect.width;
+        const x = e.touches[0].clientX;
+        const y = e.touches[0].clientY;
+
+        photoX += (x - startX) * scaleFactor;
+        photoY += (y - startY) * scaleFactor;
+        startX = x;
+        startY = y;
+        render();
+      } 
+      // Pinch Zoom (2 Jari)
+      else if (e.touches.length === 2 && initialPinchDistance) {
+        if (wrapper.contains(e.target)) {
+          if (e.cancelable) e.preventDefault();
+        }
+        const currentDistance = getDistance(e.touches);
+        if (initialPinchDistance > 0) {
+          const pinchRatio = currentDistance / initialPinchDistance;
+          let newScale = initialScale * pinchRatio;
+          newScale = Math.min(Math.max(newScale, 0.05), 5); // Batas min 5% max 500%
+
+          photoScale = newScale;
+          zoomRange.value = photoScale;
+          zoomValue.textContent = Math.round(photoScale * 100) + '%';
+          render();
+        }
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) {
+        initialPinchDistance = null;
+      }
+      if (e.touches.length === 0) {
+        isDragging = false;
+      }
+    });
+
+    // Download Function
     downloadBtn.addEventListener('click', () => {
+      if (!userPhoto) {
+        alert('Silakan upload foto Anda terlebih dahulu!');
+        return;
+      }
       const link = document.createElement('a');
       link.download = 'Twibbon-Jindi-17an.png';
       link.href = canvas.toDataURL('image/png', 1.0);
