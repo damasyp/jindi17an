@@ -47,14 +47,14 @@
       max-width: 1000px;
       width: 100%;
       margin: 0 auto;
-      padding: 16px;
+      padding: 16px 24px; /* Memberi area margin kanan-kiri untuk scroll */
       display: grid;
       grid-template-columns: 1fr;
       gap: 20px;
     }
     @media (min-width: 768px) {
       main {
-        grid-template-columns: 380px 1fr;
+        grid-template-columns: 360px 1fr;
         align-items: start;
       }
     }
@@ -62,11 +62,12 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      width: 100%;
     }
     .canvas-wrapper {
       position: relative;
       width: 100%;
-      max-width: 340px;
+      max-width: 310px; /* Ukuran disesuaikan agar tidak memenuhi lebar HP */
       aspect-ratio: 9 / 16;
       background: #ffffff;
       border-radius: 16px;
@@ -80,6 +81,10 @@
     }
     .canvas-wrapper.active-photo {
       touch-action: none;
+    }
+    .canvas-wrapper.locked {
+      touch-action: auto !important;
+      cursor: default;
     }
     .canvas-wrapper:active {
       cursor: grabbing;
@@ -128,6 +133,18 @@
     .btn-primary:hover {
       opacity: 0.95;
       transform: translateY(-1px);
+    }
+    .btn-lock {
+      background: #f8fafc;
+      color: #0f172a;
+      border: 2px solid #cbd5e1;
+      width: 100%;
+      margin-top: 10px;
+    }
+    .btn-lock.is-locked {
+      background: #fef3c7;
+      color: #92400e;
+      border-color: #f59e0b;
     }
     .btn-download {
       background: linear-gradient(135deg, #16a34a, #15803d);
@@ -190,7 +207,7 @@
     .hint-text {
       font-size: 12px;
       color: #64748b;
-      margin-top: 10px;
+      margin-top: 8px;
       text-align: center;
       line-height: 1.4;
     }
@@ -208,9 +225,13 @@
       <div class="canvas-wrapper" id="canvasWrapper">
         <canvas id="twibbonCanvas" width="1080" height="1920"></canvas>
       </div>
+
+      <button class="btn btn-lock" id="lockBtn">
+        🔓 Mode Geser Foto: AKTIF (Klik utk Kunci)
+      </button>
+
       <p class="hint-text">
-        💡 <b>Tips HP:</b> Gunakan <b>1 jari</b> untuk geser foto, <b>2 jari</b> untuk Zoom.<br>
-        <i>(Untuk scroll halaman down/up, sentuh latar abu-abu di luar frame)</i>
+        💡 <b>Tips Scroll:</b> Tekan tombol di atas untuk mengunci foto agar layar HP mudah di-scroll ke bawah.
       </p>
     </div>
 
@@ -260,6 +281,7 @@
     const rotateBtn = document.getElementById('rotateBtn');
     const resetBtn = document.getElementById('resetBtn');
     const downloadBtn = document.getElementById('downloadBtn');
+    const lockBtn = document.getElementById('lockBtn');
     const wrapper = document.getElementById('canvasWrapper');
 
     let userPhoto = null;
@@ -268,10 +290,10 @@
     let photoScale = 1;
     let photoRotation = 0;
     let isDragging = false;
+    let isLocked = false;
     let startX = 0;
     let startY = 0;
 
-    // Multi-touch pinch zoom variables
     let initialPinchDistance = null;
     let initialScale = 1;
 
@@ -280,7 +302,22 @@
     frameImg.src = '17an Jindi Frame.png';
     frameImg.onload = render;
 
-    // Helper: Gambar Kotak Putih Rounded
+    // Toggle Lock Button
+    lockBtn.addEventListener('click', () => {
+      isLocked = !isLocked;
+      if (isLocked) {
+        wrapper.classList.remove('active-photo');
+        wrapper.classList.add('locked');
+        lockBtn.classList.add('is-locked');
+        lockBtn.innerHTML = '🔒 Foto Dikunci (Scroll Layar Lancar)';
+      } else {
+        if (userPhoto) wrapper.classList.add('active-photo');
+        wrapper.classList.remove('locked');
+        lockBtn.classList.remove('is-locked');
+        lockBtn.innerHTML = '🔓 Mode Geser Foto: AKTIF (Klik utk Kunci)';
+      }
+    });
+
     function drawRoundedRect(ctx, x, y, width, height, radius) {
       ctx.beginPath();
       ctx.moveTo(x + radius, y);
@@ -292,7 +329,6 @@
       ctx.fill();
     }
 
-    // Helper: Wrap Teks Quotes Otomatis
     function wrapText(context, text, x, y, maxWidth, lineHeight) {
       const words = text.split(' ');
       let line = '';
@@ -317,7 +353,6 @@
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, 1080, 1920);
 
-      // 1. Draw User Photo (Bottom Layer)
       if (userPhoto) {
         ctx.save();
         ctx.translate(1080 / 2 + photoX, 1920 / 2 + photoY);
@@ -334,12 +369,10 @@
         ctx.fillText('Klik "Upload Foto Anda"', 540, 960);
       }
 
-      // 2. Draw Frame Overlay (Middle Layer)
       if (frameImg.complete) {
         ctx.drawImage(frameImg, 0, 0, 1080, 1920);
       }
 
-      // 3. Draw Quotes Box (Top Layer)
       const quoteText = quoteInput.value.trim();
       if (quoteText !== '') {
         ctx.save();
@@ -349,18 +382,15 @@
         const boxH = 210;
         const radius = 24;
 
-        // Background Putih
         ctx.fillStyle = '#ffffff';
         drawRoundedRect(ctx, boxX, boxY, boxW, boxH, radius);
 
-        // Ikon Quotes "
         ctx.fillStyle = '#0f172a';
         ctx.font = 'bold 110px Georgia, serif';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
         ctx.fillText('“', boxX + 20, boxY + 15);
 
-        // Teks Ucapan
         ctx.fillStyle = '#1e293b';
         ctx.font = '500 28px Georgia, serif';
         ctx.textAlign = 'left';
@@ -391,7 +421,7 @@
           photoScale = Math.max(1080 / img.width, 1920 / img.height);
           zoomRange.value = photoScale;
           zoomValue.textContent = Math.round(photoScale * 100) + '%';
-          wrapper.classList.add('active-photo');
+          if (!isLocked) wrapper.classList.add('active-photo');
           render();
         };
         img.src = evt.target.result;
@@ -433,14 +463,14 @@
 
     // MOUSE EVENTS
     wrapper.addEventListener('mousedown', (e) => {
-      if (!userPhoto) return;
+      if (!userPhoto || isLocked) return;
       isDragging = true;
       startX = e.clientX;
       startY = e.clientY;
     });
 
     window.addEventListener('mousemove', (e) => {
-      if (!isDragging || !userPhoto) return;
+      if (!isDragging || !userPhoto || isLocked) return;
       const rect = canvas.getBoundingClientRect();
       const scaleFactor = 1080 / rect.width;
 
@@ -455,21 +485,9 @@
       isDragging = false;
     });
 
-    wrapper.addEventListener('wheel', (e) => {
-      if (!userPhoto) return;
-      e.preventDefault();
-      const delta = e.deltaY > 0 ? -0.05 : 0.05;
-      let newScale = photoScale + delta;
-      newScale = Math.min(Math.max(newScale, 0.05), 5);
-      photoScale = newScale;
-      zoomRange.value = photoScale;
-      zoomValue.textContent = Math.round(photoScale * 100) + '%';
-      render();
-    }, { passive: false });
-
     // TOUCH EVENTS
     wrapper.addEventListener('touchstart', (e) => {
-      if (!userPhoto) return;
+      if (!userPhoto || isLocked) return;
 
       if (e.touches.length === 1) {
         isDragging = true;
@@ -483,7 +501,7 @@
     }, { passive: true });
 
     window.addEventListener('touchmove', (e) => {
-      if (!userPhoto) return;
+      if (!userPhoto || isLocked) return;
 
       if (e.touches.length === 1 && isDragging) {
         if (wrapper.contains(e.target)) {
