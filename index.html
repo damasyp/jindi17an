@@ -73,13 +73,13 @@
       overflow: hidden;
       box-shadow: 0 15px 25px -5px rgba(0,0,0,0.15);
       border: 4px solid #f59e0b;
-      touch-action: pan-y; /* Default ijinkan scroll vertical */
+      touch-action: pan-y;
       cursor: grab;
       user-select: none;
       -webkit-user-select: none;
     }
     .canvas-wrapper.active-photo {
-      touch-action: none; /* Kunci scroll halaman saat foto di-drag/zoom */
+      touch-action: none;
     }
     .canvas-wrapper:active {
       cursor: grabbing;
@@ -164,6 +164,19 @@
       accent-color: #dc2626;
       cursor: pointer;
     }
+    textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      font-size: 13px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    textarea:focus {
+      border-color: #dc2626;
+    }
     .badge {
       background: #fef2f2;
       color: #991b1b;
@@ -187,7 +200,7 @@
 
   <header>
     <h1>Twibbon Kemerdekaan <span>17an</span></h1>
-    <p>Dirgahayu Indonesia !! Merdekaaa!! </p>
+    <p>Aplikasi Twibbon Generator Portrait (9:16)</p>
   </header>
 
   <main>
@@ -219,7 +232,12 @@
       </div>
 
       <div>
-        <div class="section-title">3. Putar & Reset</div>
+        <div class="section-title">3. Tulis Quotes / Ucapan</div>
+        <textarea id="quoteInput" rows="3" placeholder="Tulis ucapan/quotes kamu di sini... (Opsional)"></textarea>
+      </div>
+
+      <div>
+        <div class="section-title">4. Putar & Reset</div>
         <div style="display: flex; gap: 8px;">
           <button class="btn btn-secondary" style="flex:1;" id="rotateBtn">🔄 Putar 90°</button>
           <button class="btn btn-secondary" style="flex:1;" id="resetBtn">↩️ Reset</button>
@@ -238,6 +256,7 @@
     const uploadInput = document.getElementById('uploadInput');
     const zoomRange = document.getElementById('zoomRange');
     const zoomValue = document.getElementById('zoomValue');
+    const quoteInput = document.getElementById('quoteInput');
     const rotateBtn = document.getElementById('rotateBtn');
     const resetBtn = document.getElementById('resetBtn');
     const downloadBtn = document.getElementById('downloadBtn');
@@ -261,6 +280,38 @@
     frameImg.src = '17an Jindi Frame.png';
     frameImg.onload = render;
 
+    // Helper: Gambar Kotak Putih Rounded
+    function drawRoundedRect(ctx, x, y, width, height, radius) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.arcTo(x + width, y, x + width, y + height, radius);
+      ctx.arcTo(x + width, y + height, x, y + height, radius);
+      ctx.arcTo(x, y + height, x, y, radius);
+      ctx.arcTo(x, y, x + width, y, radius);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Helper: Wrap Teks Quotes Otomatis
+    function wrapText(context, text, x, y, maxWidth, lineHeight) {
+      const words = text.split(' ');
+      let line = '';
+      let currentY = y;
+
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        const metrics = context.measureText(testLine);
+        if (metrics.width > maxWidth && n > 0) {
+          context.fillText(line, x, currentY);
+          line = words[n] + ' ';
+          currentY += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      context.fillText(line, x, currentY);
+    }
+
     function render() {
       ctx.clearRect(0, 0, 1080, 1920);
       ctx.fillStyle = '#ffffff';
@@ -283,9 +334,45 @@
         ctx.fillText('Klik "Upload Foto Anda"', 540, 960);
       }
 
-      // 2. Draw Frame Overlay (Top Layer)
+      // 2. Draw Frame Overlay (Middle Layer)
       if (frameImg.complete) {
         ctx.drawImage(frameImg, 0, 0, 1080, 1920);
+      }
+
+      // 3. Draw Quotes Box (Top Layer)
+      const quoteText = quoteInput.value.trim();
+      if (quoteText !== '') {
+        ctx.save();
+        const boxX = 430;
+        const boxY = 1180;
+        const boxW = 600;
+        const boxH = 210;
+        const radius = 24;
+
+        // Background Putih
+        ctx.fillStyle = '#ffffff';
+        drawRoundedRect(ctx, boxX, boxY, boxW, boxH, radius);
+
+        // Ikon Quotes "
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 110px Georgia, serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('“', boxX + 20, boxY + 15);
+
+        // Teks Ucapan
+        ctx.fillStyle = '#1e293b';
+        ctx.font = '500 28px Georgia, serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        
+        const textX = boxX + 115;
+        const textY = boxY + 40;
+        const maxTextWidth = boxW - 135;
+        const lineHeight = 38;
+
+        wrapText(ctx, quoteText, textX, textY, maxTextWidth, lineHeight);
+        ctx.restore();
       }
     }
 
@@ -301,7 +388,6 @@
           photoX = 0;
           photoY = 0;
           photoRotation = 0;
-          // Auto scale agar foto memenuhi minimal seluruh kanvas
           photoScale = Math.max(1080 / img.width, 1920 / img.height);
           zoomRange.value = photoScale;
           zoomValue.textContent = Math.round(photoScale * 100) + '%';
@@ -319,6 +405,8 @@
       render();
     });
 
+    quoteInput.addEventListener('input', render);
+
     rotateBtn.addEventListener('click', () => {
       photoRotation = (photoRotation + 90) % 360;
       render();
@@ -332,10 +420,10 @@
       photoScale = Math.max(1080 / userPhoto.width, 1920 / userPhoto.height);
       zoomRange.value = photoScale;
       zoomValue.textContent = Math.round(photoScale * 100) + '%';
+      quoteInput.value = '';
       render();
     });
 
-    // Helper: Hitung Jarak 2 Jari (Pinch)
     function getDistance(touches) {
       return Math.hypot(
         touches[0].clientX - touches[1].clientX,
@@ -343,7 +431,7 @@
       );
     }
 
-    // --- MOUSE EVENTS (DESKTOP) ---
+    // MOUSE EVENTS
     wrapper.addEventListener('mousedown', (e) => {
       if (!userPhoto) return;
       isDragging = true;
@@ -367,7 +455,6 @@
       isDragging = false;
     });
 
-    // Mouse Wheel Zoom
     wrapper.addEventListener('wheel', (e) => {
       if (!userPhoto) return;
       e.preventDefault();
@@ -380,18 +467,15 @@
       render();
     }, { passive: false });
 
-
-    // --- TOUCH EVENTS (MOBILE & TABLET) ---
+    // TOUCH EVENTS
     wrapper.addEventListener('touchstart', (e) => {
       if (!userPhoto) return;
 
       if (e.touches.length === 1) {
-        // 1 Jari: Mulai Drag
         isDragging = true;
         startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
       } else if (e.touches.length === 2) {
-        // 2 Jari: Mulai Pinch Zoom
         isDragging = false;
         initialPinchDistance = getDistance(e.touches);
         initialScale = photoScale;
@@ -401,10 +485,9 @@
     window.addEventListener('touchmove', (e) => {
       if (!userPhoto) return;
 
-      // Geser Foto (1 Jari)
       if (e.touches.length === 1 && isDragging) {
         if (wrapper.contains(e.target)) {
-          if (e.cancelable) e.preventDefault(); // Cegah scroll saat ngedrag foto
+          if (e.cancelable) e.preventDefault();
         }
         const rect = canvas.getBoundingClientRect();
         const scaleFactor = 1080 / rect.width;
@@ -416,9 +499,7 @@
         startX = x;
         startY = y;
         render();
-      } 
-      // Pinch Zoom (2 Jari)
-      else if (e.touches.length === 2 && initialPinchDistance) {
+      } else if (e.touches.length === 2 && initialPinchDistance) {
         if (wrapper.contains(e.target)) {
           if (e.cancelable) e.preventDefault();
         }
@@ -426,7 +507,7 @@
         if (initialPinchDistance > 0) {
           const pinchRatio = currentDistance / initialPinchDistance;
           let newScale = initialScale * pinchRatio;
-          newScale = Math.min(Math.max(newScale, 0.05), 5); // Batas min 5% max 500%
+          newScale = Math.min(Math.max(newScale, 0.05), 5);
 
           photoScale = newScale;
           zoomRange.value = photoScale;
